@@ -7,7 +7,7 @@ import java.io.PrintStream;
 import java.net.Socket;
 
 import igra.Igra;
-import odigravanje.Main;
+import server.Main;
 
 public class ClientHandler extends Thread {
 
