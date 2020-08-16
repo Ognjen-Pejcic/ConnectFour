@@ -113,10 +113,10 @@ public class ClientHandler extends Thread {
 					}
 					//uSobi = true;
 					while(ova.drugi==null)continue;
-				/*	while (this.uSobi==true) {
+					while (this.uSobi==true) {
 						continue;
 					}
-					break;*/
+					break;
 				case 4:// Dodaj prijatelja
 				case 5:// Zahtevi za prijateljstvo
 				case 6:// logout
