@@ -139,7 +139,10 @@ public class Igra extends Thread {
 			if (proveraPobede(1)) {
 				prvi.ispisPorukeOdServera("Pobedili ste!");
 				drugi.ispisPorukeOdServera("Prvi je pobedio");
+				prvi.uSobi=false;
+				drugi.uSobi=false;
 				break;
+				
 			}
 
 			synchronized (matrica) {

@@ -113,7 +113,8 @@ public class ClientHandler extends Thread {
 					}
 					//uSobi = true;
 					while(ova.drugi==null)continue;
-					while (this.uSobi==true) {
+					while (ova.igra.isAlive() && this.uSobi==true) {
+						
 						continue;
 					}
 					break;
