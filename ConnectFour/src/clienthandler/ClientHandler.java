@@ -7,6 +7,7 @@ import java.io.PrintStream;
 import java.net.Socket;
 
 import igra.Igra;
+import igra.Soba;
 import server.Main;
 
 public class ClientHandler extends Thread {
@@ -15,12 +16,15 @@ public class ClientHandler extends Thread {
 	PrintStream clientOutput = null;
 	Socket socketZaKomunikaciju = null;
 	String username;
+	boolean uGlobalChatu = false;
+	public boolean uSobi = false;
 	int brojigraca;
 	public Igra igra = new Igra();
+	public int nesto = 1;
 
 	public ClientHandler(Socket socketZaKomunikaciju) throws IOException {
 		this.socketZaKomunikaciju = socketZaKomunikaciju;
-		
+
 		if (Main.onlineKorisnici.isEmpty())
 			brojigraca = 1;
 		else
@@ -29,7 +33,7 @@ public class ClientHandler extends Thread {
 		clientOutput = new PrintStream(socketZaKomunikaciju.getOutputStream());
 	}
 
-	public void ispisi(Igra ii) {
+	public void ispisMatrice(Igra ii) {
 
 		for (int i = 0; i < 8; i++) {
 			for (int j = 0; j < 8; j++) {
@@ -43,217 +47,137 @@ public class ClientHandler extends Thread {
 
 	@Override
 	public synchronized void run() {
-		
+
 		try {
-			/*synchronized (this) {
-				if(brojigraca==1)this.wait();
-				if(brojigraca==2)this.notifyAll();
-			}*/
-			
+
 			clientInput = new BufferedReader(new InputStreamReader(socketZaKomunikaciju.getInputStream()));
 			clientOutput = new PrintStream(socketZaKomunikaciju.getOutputStream());
 
-			clientOutput.println("Unesite korisnicko ime:");
+			ispisPorukeOdServera("Unesite korisnicko ime:");
 			username = clientInput.readLine();
 			clientOutput.println(">>> Dobrodosao/la " + username);
 
-			for (ClientHandler klijent : Main.onlineKorisnici) {
-				if (klijent != this) {
-					klijent.clientOutput.println(">>> Korisnik " + username + " je usao/la u chat sobu!");
+			int izbor = 0;
+
+			do {
+				ispisMenija();
+				while (true) {
+					try {
+						izbor = Integer.parseInt(clientInput.readLine());
+					} catch (NumberFormatException e) {
+						izbor = 0;
+					}
+					if (izbor >= 1 && izbor <= 6)
+						break;
+					else
+						ispisPorukeOdServera("Pogresan unos, unesite broj izmedju 1 i 6");
 				}
-			}
+				switch (izbor) {
 
-			
-			String noviunos=""; 
-			while(!(noviunos.equals("quit"))){
-				igra.napuniMatricuZaTest();
-		boolean pobeda=false;
-		 	do {
-		 		
-		 		/*  ClientHandler c2 = null; for (ClientHandler client : Main.onlineKorisnici) {
-			 if(client!=this) c2=client; }*/
-			  
-	// synchronized(c2) {
-			  if (brojigraca == 1) {
-			  
-				/*  for (Object client : Main.onlineKorisnici) {
-			  if(client!=this)
-			  client.wait();
-			  }*/
-			  
-			  clientOutput.println("Unesi kolonu(prvi igrac)"); 
-			  int prva1=-1;
-			  boolean proveraUnosa=false;
-			  do {
-				  String unos = clientInput.readLine();
-				  char[] kolona = unos.toCharArray();
-				  if(kolona.length==1 && 
-						  Character.isDigit(kolona[0])&&
-						  (Integer.parseInt(unos)>=0&&Integer.parseInt(unos)<=igra.matrica.length-1)) {
-				  proveraUnosa=true;
-				  prva1 = Integer.parseInt(unos);
-				  }
-				  else 
-					  clientOutput.println("Nepravilan unos, unesite samo cifru izmedju 0 i " + (igra.matrica.length-1)); 
-			  }while(proveraUnosa==false);
-			 // Character.isDigit(ch)
-		
-			 // clientOutput.println("Unesi drugu koordinatu(prvi igrac)"); int druga1 =
-		//  Integer.parseInt(clientInput.readLine()); 
-			  int provera=0;
-			 do { 
-				  provera=igra.postavi(prva1,brojigraca);
-				 if(provera==1) {
-					 clientOutput.println("Kolona je popunjena, ne mozete tu vise da ubacujete");
-					 }else if(provera==2) {
-						 clientOutput.println("Kraj igre-nereseno");
-						 break;
-					 }
-				 
-				 
-				 }while(provera!=0);
-			 if(provera==2)break;
-			  ispisi(igra); 
-			  for (ClientHandler client : Main.onlineKorisnici){ 
-				  if (client != this) { 
-					  client.igra.postavi(prva1, this.brojigraca);
-		 client.ispisi(client.igra);} 
-				  }
-			  
-			  
-			// this.notifyAll();
-			  
-		  } if (brojigraca == 2) {
-			  
-		/*  for (Object client : Main.onlineKorisnici) {
-			  if(client!=this)
-			  client.wait(); }
-			  */
-			  int prva1=-1;
-			  clientOutput.println("Unesi kolonu(drugi igrac)"); 
-			  boolean proveraUnosa=false;
-			  do {
-				  if (igra.proveraPobede(1)==true) { 
-					  pobeda = true;
-				  clientOutput.println(" Pobedili ste"); 
-				  for (ClientHandler client : Main.onlineKorisnici) { 
-					  if (client != this) {
-				  client.clientOutput.println(" prvi je pobedio"); } 
-					  } 
-				  if (pobeda) break; 
-				  }
-				if (igra.proveraPobede(2)==true) {
-					pobeda = true;
-				  clientOutput.println(" Pobedili ste"); 
-				  for (ClientHandler client :Main.onlineKorisnici) { 
-					  if (client != this) {
-				  client.clientOutput.println(" Drugi je pobedio");
-				  } 
-					  } 
-				  if (pobeda) break; 
-				  }
-				  String unos = clientInput.readLine();
-				  char[] kolona = unos.toCharArray();
-				  if(kolona.length==1 &&
-						  Character.isDigit(kolona[0]) &&
-						  (Integer.parseInt(unos)>=0&&Integer.parseInt(unos)<=igra.matrica.length-1)) {
-				  proveraUnosa=true;
-				  prva1 = Integer.parseInt(unos);
-				  }
-				  else 
-					  clientOutput.println("Nepravilan unos, unesite samo cifru izmedju 0 i " + (igra.matrica.length-1)); 
-			  }while(proveraUnosa==false);
-			//  int prva1 = Integer.parseInt(clientInput.readLine());
-		  //clientOutput.println("Unesi drugu koordinatu(drugi igrac)"); 
-			  //int druga1 = Integer.parseInt(clientInput.readLine()); 
-			  igra.postavi(prva1, brojigraca); 
-			  ispisi(igra); for (ClientHandler client : Main.onlineKorisnici)
-			  { if (client != this) { client.igra.postavi(prva1, this.brojigraca);
-		  client.ispisi(client.igra);} }
-			  
-			 // this.notifyAll();
-			  
-			  } if (igra.proveraPobede(1)==true) { 
-				  pobeda = true;
-			  clientOutput.println(" Pobedili ste"); 
-			  for (ClientHandler client : Main.onlineKorisnici) { 
-				  if (client != this) {
-			  client.clientOutput.println(" prvi je pobedio"); } 
-				  } 
-			  if (pobeda) break; 
-			  }
-			if (igra.proveraPobede(2)==true) {
-				pobeda = true;
-			  clientOutput.println(" Pobedili ste"); 
-			  for (ClientHandler client :Main.onlineKorisnici) { 
-				  if (client != this) {
-			  client.clientOutput.println(" Drugi je pobedio");
-			  } 
-				  } 
-			  if (pobeda) break; 
-			  }
-	 //}
-			  } while (true);
-			 clientOutput.println("Za izlaz unesite: quit, za novu partiju:  nova");
-			 noviunos = clientInput.readLine();
-		}
-	/*		
-			  String message = clientInput.readLine();
-			  
-			 while (true) { // ako poruka sadrzi niz karaktera koji ukazuju na izlaz,
-			  //izlazi se iz petlje, // korisnik se izbacuje // iz liste online usera na
-			// serveru i obavestavaju se ostali da je doticni // napustio chat
-			 
-			  if (message.startsWith("***quit")) { break; } } // regularna poruka se
-			 // prosledjuje svima iz liste online usera
-			  
-			  for (ClientHandler klijent : Main.onlineKorisnici) {
-			  klijent.clientOutput.println("[" + username + "]: " + message); }
-			 
-			  // korisniku koji napusta chat se salje pozdravna poruka
-			
-			clientOutput.println(">>> Dovidjenja " + username);
+				case 1:// globalni chat
+					this.uGlobalChatu = true;
+					ispisPorukeOdServera("Za izlaz unesite \"izlaz\"");
+					slanjePorukeOstalimUcesnicima(username + " je usao u chat sobu!");
+					while (true) {
+						String message = clientInput.readLine();
+						if (message.toLowerCase().equals("izlaz"))
+							break;
+						slanjePorukeSvimUcesnicima(username + ": " + message);
+					}
+					slanjePorukeSvimUcesnicima(username + " je napustio chat!");
+					this.uGlobalChatu = false;
+					break;
 
-			// obavestavaju se ostali da je "user" napustio chat
+				case 2:// privatni chat
 
-			for (ClientHandler klijent : Main.onlineKorisnici) {
-				if (klijent != this) {
-					klijent.clientOutput.println(">>> Korisnik " + username + " je napustio chat!");
+				case 3:// igra
+					uSobi=true;
+					Soba ova=null;
+					if (Main.sobe.isEmpty()) {
+						Main.sobe.add(new Soba(this));
+						 ova =  Main.sobe.getFirst();
+						ispisPorukeOdServera("Ceka se drugi igrac...");
+					} else {
+						for (Soba soba : Main.sobe) {
+							if (soba.drugi == null) {
+								soba.prikljucivanjeIgri(this);
+								ova=soba;
+								soba.prvi.ispisPorukeOdServera("Igrate protiv: " + username);
+								ispisPorukeOdServera("Igrate protiv: " + soba.prvi.username);
+							} else {
+								Main.sobe.add(new Soba(this));
+								ispisPorukeOdServera("Ceka se drugi igrac...");
+								ova=soba;
+							}
+						}
+					}
+					//uSobi = true;
+					while(ova.drugi==null)continue;
+				/*	while (this.uSobi==true) {
+						continue;
+					}
+					break;*/
+				case 4:// Dodaj prijatelja
+				case 5:// Zahtevi za prijateljstvo
+				case 6:// logout
+
+				default:
+
 				}
-			}
-
-			// korisnik se izbacuje iz liste
-*/
-			
-
-			// zatvaramo soket za komunikaciju
-
-			
-		 	/*
-			for (ClientHandler klijent : Main.onlineKorisnici) {
-				if (klijent != this) {
-					Main.onlineKorisnici.remove(klijent);
-					klijent.socketZaKomunikaciju.close();
-				}
-			}*/
+				
+			} while (izbor != 6);
 			clientOutput.println("Kraj");
 			Main.onlineKorisnici.remove(this);
 			socketZaKomunikaciju.close();
 
-		}catch(
+			
+			
 
-	IOException e)
-	{
+			
+		} catch (IOException e) {
 
-		Main.onlineKorisnici.remove(this);
+			Main.onlineKorisnici.remove(this);
 
-		for (ClientHandler client : Main.onlineKorisnici) {
+			for (ClientHandler client : Main.onlineKorisnici) {
 
-			if (client != this) {
-				client.clientOutput.println(">>> Korisnik " + username + " je napustio/la u chat!!!");
+				if (client != this) {
+					client.clientOutput.println(">>> Korisnik " + username + " je napustio/la u chat!!!");
+				}
+			}
+		} //catch (InterruptedException e) {}
+
+	}
+
+	public void ispisPorukeOdServera(String poruka) {
+		clientOutput.println(poruka);
+	}
+
+	private void slanjePorukeSvimUcesnicima(String poruka) {
+		for (ClientHandler klijent : Main.onlineKorisnici) {
+			if (klijent.uGlobalChatu == true)
+				klijent.clientOutput.println(poruka);
+		}
+	}
+
+	private void slanjePorukeOstalimUcesnicima(String poruka) {
+		for (ClientHandler klijent : Main.onlineKorisnici) {
+			if (klijent != this) {
+				if (klijent.uGlobalChatu == true)
+					klijent.clientOutput.println(poruka);
 			}
 		}
 	}
 
-}
+	private void ispisMenija() {
+
+		clientOutput.println(
+				"1. Globalni chat\n2. Privatni chat\n3. Igraj\n4. Dodaj prijatelja\n5. Zahtevi za prijateljstvo\n6. Logout\nVas izbor:");
+
 	}
+
+	public String unos() throws IOException {
+		return clientInput.readLine();
+	}
+
+	
+}
