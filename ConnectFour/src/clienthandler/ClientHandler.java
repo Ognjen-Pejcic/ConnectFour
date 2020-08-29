@@ -8,6 +8,7 @@ import java.net.Socket;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Statement;
 
 import igra.Igra;
@@ -56,9 +57,16 @@ public class ClientHandler extends Thread {
 
 			clientInput = new BufferedReader(new InputStreamReader(socketZaKomunikaciju.getInputStream()));
 			clientOutput = new PrintStream(socketZaKomunikaciju.getOutputStream());
-
-			ispisPorukeOdServera("Unesite korisnicko ime:");
-			username = clientInput.readLine();
+			
+			ispisiMeni();
+			String izborS = clientInput.readLine();
+			if (izborS.startsWith("1")) {
+				registracija();
+				logovanje();
+			} else {
+				logovanje();
+			}
+			
 			clientOutput.println(">>> Dobrodosao/la " + username);
 
 			int izbor = 0;
@@ -153,7 +161,41 @@ public class ClientHandler extends Thread {
 
 	}
 	
-	public boolean postojiUBazi(string ime) {
+	private void registracija() throws IOException {
+		clientOutput.println("Unesite korisnicko ime za registraciju");
+		while(true) {
+			String username = clientInput.readLine();
+			if(postojiUBazi(username)) {
+				clientOutput.println("Username vec postoji. Unesite ponovo.");
+			} else {
+				upisiUBazu(username);
+				clientOutput.println("Registracija uspjesna");
+				break;
+			}
+		}
+	}
+	
+	private void logovanje() throws IOException {
+		clientOutput.println("Unesite vase korisnicko ime");
+		while(true) {
+			String username = clientInput.readLine();
+			if (postojiUBazi(username)) {
+				clientOutput.println("Uspjesno logovanje.");
+				this.username = username;
+				break;
+			} else {
+				clientOutput.println("Neuspjesno logovanje. Pokusajte ponovo.");
+			}
+		}
+	}
+	
+	private void ispisiMeni() {
+		clientOutput.println("Izaberi opciju:");
+		clientOutput.println("1. Registracija");
+		clientOutput.println("2. Logovanje");
+	}
+	
+	public boolean postojiUBazi(String ime) {
 		try {
 			Class.forName("com.mysql.jdbc.Driver");
 			Connection con = DriverManager.getConnection("jdbc:mysql://localhost:3306/mydb", "root", "root");
@@ -167,18 +209,18 @@ public class ClientHandler extends Thread {
 			}
 			st.close();
 			con.close();
-			return false;
 		} catch (ClassNotFoundException | SQLException e) {
 			e.printStackTrace();
 		}
+		return false;
 	}
 	
-	public void upisiUBazu(string ime) {
+	public void upisiUBazu(String ime) {
 		try {
 			Class.forName("com.mysql.jdbc.Driver");
 			Connection con = DriverManager.getConnection("jdbc:mysql://localhost:3306/mydb", "root", "root");
 			Statement st = con.createStatement();
-			String ins = "INSERT INTO USERS VALUES('"+ime+"', 0)"
+			String ins = "INSERT INTO USERS VALUES('"+ime+"', 0)";
 			st.execute(ins);
 			st.close();
 			con.close();
