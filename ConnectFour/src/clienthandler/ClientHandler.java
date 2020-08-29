@@ -5,6 +5,10 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.net.Socket;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.Statement;
 
 import igra.Igra;
 import igra.Soba;
@@ -147,6 +151,40 @@ public class ClientHandler extends Thread {
 			}
 		} //catch (InterruptedException e) {}
 
+	}
+	
+	public boolean postojiUBazi(string ime) {
+		try {
+			Class.forName("com.mysql.jdbc.Driver");
+			Connection con = DriverManager.getConnection("jdbc:mysql://localhost:3306/mydb", "root", "root");
+			Statement st = con.createStatement();
+			ResultSet rs = st.executeQuery("SELECT NAME FROM USERS");
+			while(rs.next()) {
+				String name = rs.getString("name");
+				if(name.equalsIgnoreCase(ime)) {
+					return true;
+				}
+			}
+			st.close();
+			con.close();
+			return false;
+		} catch (ClassNotFoundException | SQLException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	public void upisiUBazu(string ime) {
+		try {
+			Class.forName("com.mysql.jdbc.Driver");
+			Connection con = DriverManager.getConnection("jdbc:mysql://localhost:3306/mydb", "root", "root");
+			Statement st = con.createStatement();
+			String ins = "INSERT INTO USERS VALUES('"+ime+"', 0)"
+			st.execute(ins);
+			st.close();
+			con.close();
+		} catch (ClassNotFoundException | SQLException e) {
+			e.printStackTrace();
+		}
 	}
 
 	public void ispisPorukeOdServera(String poruka) {
