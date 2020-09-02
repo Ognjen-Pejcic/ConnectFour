@@ -1,0 +1,52 @@
+user(#user_id, name)
+statistic(#statistic_id, #user_id, wins, loses, draws, raiting) 
+game(#user_id1,#user_id2, #date_time, result) //(result in ("first_win", "second_win", "draw"))
+friend(#user_id1, #user_id2, status)  
+
+
+
+create table users(
+user_id integer not null auto_increment,
+name varchar(30) not null,
+constraint user_pk1 PRIMARY KEY(user_id) 
+);
+
+create table statistics(
+statistic_id integer not null auto_increment, 
+user_id integer,
+wins numeric(7,0),
+loses numeric(7,0),
+draws numeric(7,0),
+raiting numeric(7,0),
+constraint statistic_pk1 PRIMARY KEY(statistic_id, user_id),
+constraint statistic_fk1 FOREIGN KEY(user_id)
+references users (user_id)
+);
+
+create table game(
+game_id integer not null  auto_increment,
+user_id1 integer  not null,
+user_id2 integer  not null,
+date_time datetime,
+result varchar(30),
+constraint game_pk1 PRIMARY KEY(game_id, user_id1, user_id2, date_time),
+constraint game_fk1 FOREIGN KEY(user_id1)
+references users (user_id),
+constraint game_fk2 FOREIGN KEY(user_id1)
+references users (user_id),
+constraint game_ck1 CHECK (result in("first_won", "second_won", "draw")));
+
+create table friends(
+friends_id1 integer not null auto_increment
+user_id1 integer  not null,
+user_id2 integer  not null,
+status numeric(7,0),
+constraint friends_pk1 PRIMARY KEY(friends_id1, user_id1, user_id2),
+constraint friends_fk1 FOREIGN KEY(user_id1)
+references users (user_id),
+constraint friends_fk2 FOREIGN KEY(user_id1)
+references users (user_id)
+);
+
+
+

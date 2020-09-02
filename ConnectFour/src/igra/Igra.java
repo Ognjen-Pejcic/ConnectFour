@@ -1,6 +1,12 @@
 package igra;
 
 import java.io.IOException;
+import java.sql.Connection;
+import java.sql.Date;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.sql.Timestamp;
 
 import clienthandler.ClientHandler;
 
@@ -8,15 +14,16 @@ public class Igra extends Thread {
 
 	// public char[][] matrica = new char[8][8];
 	public int[][] matrica = new int[8][8];
-	ClientHandler prvi, drugi;
-	Soba soba;
+	public int pobednikID, gubitnikID;
+	public ClientHandler prvi, drugi;
+	public int pobednik=0; 
 	public Igra() {
 	}
 
 	public Igra(ClientHandler prvi, ClientHandler drugi, Soba soba) {
 		this.prvi = prvi;
 		this.drugi = drugi;
-		this.soba=soba;
+		
 	}
 
 	public void napuniMatricu() {
@@ -128,6 +135,7 @@ public class Igra extends Thread {
 					} else if (provera == 2) {
 						prvi.ispisPorukeOdServera("Kraj igre-nereseno");
 						drugi.ispisPorukeOdServera("Kraj igre-nereseno");
+						return;
 					}
 
 				} while (provera != 0 && provera != 2);
@@ -137,12 +145,11 @@ public class Igra extends Thread {
 				drugi.ispisMatrice(this);
 			
 			if (proveraPobede(1)) {
+				pobednik=1;
 				prvi.ispisPorukeOdServera("Pobedili ste!");
 				drugi.ispisPorukeOdServera("Prvi je pobedio");
-				prvi.uSobi=false;
-				drugi.uSobi=false;
 				break;
-				
+				//return;
 			}
 
 			synchronized (matrica) {
@@ -165,6 +172,7 @@ public class Igra extends Thread {
 					} else if (provera == 2) {
 						prvi.ispisPorukeOdServera("Kraj igre-nereseno");
 						drugi.ispisPorukeOdServera("Kraj igre-nereseno");
+						return;
 					}
 
 				} while (provera != 0 && provera != 2);
@@ -175,13 +183,115 @@ public class Igra extends Thread {
 				drugi.ispisMatrice(this);
 			
 			if (proveraPobede(2)) {
+				pobednik=2;
 				prvi.ispisPorukeOdServera("Drugi je pobedio");
 				drugi.ispisPorukeOdServera("Pobedili ste!");
 				break;
+				//return;
 			}
 			
 		} while (true);
-		prvi.uSobi=false;
-		drugi.uSobi=false;
+		this.upisiIgru();
+		this.updateStatistiku();
 	}
+	
+	public void upisiIgru() {
+		try {
+			Class.forName("com.mysql.jdbc.Driver");
+			Connection con = DriverManager.getConnection("jdbc:mysql://localhost:3306/mydb", "root", "root");
+			PreparedStatement st = con.prepareStatement("INSERT INTO game(user_id1, user_id2, date_time, result) VALUES(?,?,?,?)");
+			st.setInt(1, prvi.idIgraca);
+			st.setInt(2, drugi.idIgraca);
+			java.util.Date date =  new java.util.Date();
+			Timestamp sqlTimeStamp =  new java.sql.Timestamp(date.getTime());
+			st.setTimestamp(3, sqlTimeStamp);
+			if(pobednik==1)
+				st.setString(4, "first_won");
+			else if (pobednik==2)
+				st.setString(4, "second_won");
+			else 
+				st.setString(4, "draw");
+			st.execute();
+			st.close();
+			con.close();
+			
+			
+		} catch (ClassNotFoundException | SQLException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	public void updateStatistiku() {
+		try {
+			Class.forName("com.mysql.jdbc.Driver");
+			Connection con = DriverManager.getConnection("jdbc:mysql://localhost:3306/mydb", "root", "root");
+			PreparedStatement st1 = null;
+			PreparedStatement st2 = null;
+			PreparedStatement st3 = null;
+			PreparedStatement st4 = null;
+			
+			if(pobednik==1) {
+				st1 = con.prepareStatement("update  statistics set wins=wins+1 where user_id = ?");
+			st2 = con.prepareStatement("update  statistics set loses=loses+1 where user_id = ?");
+			st3 = con.prepareStatement("update  statistics set raiting=raiting+5 where user_id = ?");
+			st4 = con.prepareStatement("update  statistics set raiting=raiting-2 where user_id = ?");
+			st1.setInt(1, prvi.idIgraca);
+			st2.setInt(1, drugi.idIgraca);
+			st3.setInt(1, prvi.idIgraca);
+			st4.setInt(1, drugi.idIgraca);
+			st1.execute();
+			st1.close();
+			st2.execute();
+			st2.close();
+			st3.execute();
+			st3.close();
+			st4.execute();
+			st4.close();
+			}
+			else if (pobednik==2)
+				{
+				st1 = con.prepareStatement("update  statistics set wins=wins+1 where user_id = ?");
+				st2 = con.prepareStatement("update  statistics set loses=loses+1 where user_id = ?");
+				st3 = con.prepareStatement("update  statistics set raiting=raiting-2 where user_id = ?");
+				st4 = con.prepareStatement("update  statistics set raiting=raiting+5 where user_id = ?");
+				st3.setInt(1, prvi.idIgraca);
+				st4.setInt(1, drugi.idIgraca);
+				st1.setInt(1, drugi.idIgraca);
+				st2.setInt(1, prvi.idIgraca);
+				st1.execute();
+				st1.close();
+				st2.execute();
+				st2.close();
+				st3.execute();
+				st3.close();
+				st4.execute();
+				st4.close();
+				}
+			else {
+				st1 = con.prepareStatement("update  statistics set draws=draws+1 where user_id = ?");
+				st2 = con.prepareStatement("update  statistics set draws=draws+1 where user_id = ?");
+				st3 = con.prepareStatement("update  statistics set raiting=raiting+1 where user_id = ?");
+				st4 = con.prepareStatement("update  statistics set raiting=raiting+1 where user_id = ?");
+				st1.setInt(1, prvi.idIgraca);
+				st2.setInt(1, drugi.idIgraca);
+				st3.setInt(1, prvi.idIgraca);
+				st4.setInt(1, drugi.idIgraca);
+				st1.execute();
+				st1.close();
+				st2.execute();
+				st2.close();
+				st3.execute();
+				st3.close();
+				st4.execute();
+				st4.close();
+			}
+				
+			con.close();
+			
+			
+		} catch (ClassNotFoundException | SQLException e) {
+			e.printStackTrace();
+		}
+	}
+	
 }

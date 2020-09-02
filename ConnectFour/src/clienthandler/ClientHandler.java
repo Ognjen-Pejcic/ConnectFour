@@ -7,9 +7,12 @@ import java.io.PrintStream;
 import java.net.Socket;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.RowId;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.LinkedList;
 
 import igra.Igra;
 import igra.Soba;
@@ -26,6 +29,9 @@ public class ClientHandler extends Thread {
 	int brojigraca;
 	public Igra igra = new Igra();
 	public int nesto = 1;
+	public int idIgraca;
+
+	LinkedList<ZahtevZaPrijateljstvo> zahtevi = new LinkedList<>();
 
 	public ClientHandler(Socket socketZaKomunikaciju) throws IOException {
 		this.socketZaKomunikaciju = socketZaKomunikaciju;
@@ -57,17 +63,20 @@ public class ClientHandler extends Thread {
 
 			clientInput = new BufferedReader(new InputStreamReader(socketZaKomunikaciju.getInputStream()));
 			clientOutput = new PrintStream(socketZaKomunikaciju.getOutputStream());
-			
+
 			ispisiMeni();
 			String izborS = clientInput.readLine();
 			if (izborS.startsWith("1")) {
 				registracija();
+
 				logovanje();
+
 			} else {
 				logovanje();
 			}
-			
+
 			clientOutput.println(">>> Dobrodosao/la " + username);
+			this.getID();
 
 			int izbor = 0;
 
@@ -101,52 +110,82 @@ public class ClientHandler extends Thread {
 					break;
 
 				case 2:// privatni chat
-
+					ispisiOnline();
+					//ispisPorukeOdServera("Izaberite razgovor: ");
+					/*String friend =  unos();
+					for (ZahtevZaPrijateljstvo zahtevZaPrijateljstvo : zahtevi) {
+						if(zahtevZaPrijateljstvo.usernamePrijatelja==friend) {
+						String poruka=null;
+						while(!poruka.equals("izlaz")) {
+							poruka = unos();
+							slanjeprivatnePoruke(poruka, zahtevZaPrijateljstvo.usernamePrijatelja);
+						}
+					}
+					}*/
+					break;
 				case 3:// igra
-					uSobi=true;
-					Soba ova=null;
+					uSobi = true;
+					Soba ova = null;
 					if (Main.sobe.isEmpty()) {
 						Main.sobe.add(new Soba(this));
-						 ova =  Main.sobe.getFirst();
+						ova = Main.sobe.getFirst();
 						ispisPorukeOdServera("Ceka se drugi igrac...");
 					} else {
 						for (Soba soba : Main.sobe) {
 							if (soba.drugi == null) {
 								soba.prikljucivanjeIgri(this);
-								ova=soba;
+								ova = soba;
 								soba.prvi.ispisPorukeOdServera("Igrate protiv: " + username);
 								ispisPorukeOdServera("Igrate protiv: " + soba.prvi.username);
+								// ova.zapocniIgru();
 							} else {
 								Main.sobe.add(new Soba(this));
 								ispisPorukeOdServera("Ceka se drugi igrac...");
-								ova=soba;
+								ova = soba;
+								// ova.zapocniIgru();
 							}
 						}
 					}
-					//uSobi = true;
-					while(ova.drugi==null)continue;
-					while (ova.igra.isAlive() && this.uSobi==true) {
-						
+
+					while (ova.drugi == null) {
+						Thread.sleep(5000);
 						continue;
 					}
+
+					while (ova.igra.isAlive() && this.uSobi == true)
+						continue;
+
 					break;
-				case 4:// Dodaj prijatelja
-				case 5:// Zahtevi za prijateljstvo
+				case 4:
+					ispisPorukeOdServera("Unesite ime prijatelja: ");
+					String prijatelj = unos();
+					if (postojiUBazi(prijatelj)) {
+						napraviZahtevZaPrijateljstvo(prijatelj);
+						for (ClientHandler korisnik : Main.onlineKorisnici) {
+							if (korisnik.username.equals(prijatelj))
+								korisnik.zahtevi.add(new ZahtevZaPrijateljstvo(this.username, 0));
+						}
+						ispisPorukeOdServera("Zahtev je poslat");
+
+					} else
+						ispisPorukeOdServera("Prijatelj ne postoji");
+					break;
+
+				case 5:
+					proveriZahteve();
+					break;
 				case 6:// logout
 
 				default:
 
 				}
-				
+
 			} while (izbor != 6);
 			clientOutput.println("Kraj");
+			unos();
 			Main.onlineKorisnici.remove(this);
 			socketZaKomunikaciju.close();
 
-			
-			
-
-			
 		} catch (IOException e) {
 
 			Main.onlineKorisnici.remove(this);
@@ -157,27 +196,81 @@ public class ClientHandler extends Thread {
 					client.clientOutput.println(">>> Korisnik " + username + " je napustio/la u chat!!!");
 				}
 			}
-		} //catch (InterruptedException e) {}
+		} catch (InterruptedException e) {
+		}
 
 	}
-	
+
+	private void napraviZahtevZaPrijateljstvo(String ime) {
+		zahtevi.add(new ZahtevZaPrijateljstvo(ime, 0));
+		try {
+			Class.forName("com.mysql.jdbc.Driver");
+			Connection con = DriverManager.getConnection("jdbc:mysql://localhost:3306/mydb", "root", "root");
+			PreparedStatement st = con.prepareStatement("INSERT INTO Friends(USER_ID1, USER_ID2) VALUES(?,?)");
+			st.setInt(1, this.idIgraca);
+			st.setInt(2, getIDprijatelja(ime));
+			st.execute();
+			st.close();
+			con.close();
+
+		} catch (ClassNotFoundException | SQLException e) {
+			e.printStackTrace();
+		}
+
+	}
+
+	private void proveriZahteve() throws IOException {
+		for (ZahtevZaPrijateljstvo zahtevZaPrijateljstvo : zahtevi) {
+			ispisPorukeOdServera("Username: " + zahtevZaPrijateljstvo.usernamePrijatelja + " status: "
+					+ zahtevZaPrijateljstvo.status);
+			ispisPorukeOdServera("Da li prihvatate zahtev(y/n)");
+			if (unos().toLowerCase().equals("y")) {
+				zahtevZaPrijateljstvo.status = 1;
+				for(ClientHandler c : Main.onlineKorisnici) {
+					for(ZahtevZaPrijateljstvo z:c.zahtevi) {
+						if(c.username.equals(z.usernamePrijatelja))
+							z.status=1;
+					}
+				}
+				try {
+					Class.forName("com.mysql.jdbc.Driver");
+					Connection con = DriverManager.getConnection("jdbc:mysql://localhost:3306/mydb", "root", "root");
+					PreparedStatement st = con.prepareStatement(
+							"update friends " + "set fstatus = 1 where user_id1 = ? and user_id2 = ?");
+					System.out.println(getIDprijatelja(zahtevZaPrijateljstvo.usernamePrijatelja) + " " + this.idIgraca);
+					st.setInt(1, getIDprijatelja(zahtevZaPrijateljstvo.usernamePrijatelja));
+					st.setInt(2, this.idIgraca);
+					st.execute();
+					st.close();
+					con.close();
+
+				} catch (ClassNotFoundException | SQLException e) {
+					e.printStackTrace();
+				}
+
+			}
+		}
+
+	}
+
 	private void registracija() throws IOException {
 		clientOutput.println("Unesite korisnicko ime za registraciju");
-		while(true) {
+		while (true) {
 			String username = clientInput.readLine();
-			if(postojiUBazi(username)) {
+			if (postojiUBazi(username)) {
 				clientOutput.println("Username vec postoji. Unesite ponovo.");
 			} else {
-				upisiUBazu(username);
+				upisiUsera(username);
 				clientOutput.println("Registracija uspjesna");
 				break;
 			}
 		}
+
 	}
-	
+
 	private void logovanje() throws IOException {
 		clientOutput.println("Unesite vase korisnicko ime");
-		while(true) {
+		while (true) {
 			String username = clientInput.readLine();
 			if (postojiUBazi(username)) {
 				clientOutput.println("Uspjesno logovanje.");
@@ -188,22 +281,22 @@ public class ClientHandler extends Thread {
 			}
 		}
 	}
-	
+
 	private void ispisiMeni() {
 		clientOutput.println("Izaberi opciju:");
 		clientOutput.println("1. Registracija");
 		clientOutput.println("2. Logovanje");
 	}
-	
+
 	public boolean postojiUBazi(String ime) {
 		try {
 			Class.forName("com.mysql.jdbc.Driver");
 			Connection con = DriverManager.getConnection("jdbc:mysql://localhost:3306/mydb", "root", "root");
 			Statement st = con.createStatement();
 			ResultSet rs = st.executeQuery("SELECT NAME FROM USERS");
-			while(rs.next()) {
+			while (rs.next()) {
 				String name = rs.getString("name");
-				if(name.equalsIgnoreCase(ime)) {
+				if (name.equalsIgnoreCase(ime)) {
 					return true;
 				}
 			}
@@ -214,16 +307,58 @@ public class ClientHandler extends Thread {
 		}
 		return false;
 	}
-	
-	public void upisiUBazu(String ime) {
+
+	public void upisiUsera(String ime) {
 		try {
 			Class.forName("com.mysql.jdbc.Driver");
 			Connection con = DriverManager.getConnection("jdbc:mysql://localhost:3306/mydb", "root", "root");
-			Statement st = con.createStatement();
-			String ins = "INSERT INTO USERS VALUES('"+ime+"', 0)";
-			st.execute(ins);
+			PreparedStatement st = con.prepareStatement("INSERT INTO USERS(NAME) VALUES(?)");
+			st.setString(1, ime);
+			st.execute();
+			ResultSet rs = st.executeQuery("SELECT USER_ID FROM USERS WHERE NAME = '" + ime + "'");
+			while (rs.next()) {
+				int id = rs.getInt(1);
+				upisiStatistiku(id);
+			}
+
 			st.close();
 			con.close();
+
+		} catch (ClassNotFoundException | SQLException e) {
+			e.printStackTrace();
+		}
+	}
+
+	public void upisiStatistiku(int id) {
+		try {
+			Class.forName("com.mysql.jdbc.Driver");
+			Connection con = DriverManager.getConnection("jdbc:mysql://localhost:3306/mydb", "root", "root");
+			PreparedStatement st = con.prepareStatement("INSERT INTO STATISTICS(USER_ID) VALUES(?)");
+			st.setInt(1, id);
+			st.execute();
+			st.close();
+			con.close();
+
+		} catch (ClassNotFoundException | SQLException e) {
+			e.printStackTrace();
+		}
+	}
+
+	public void upisi(String ime) {
+		try {
+			Class.forName("com.mysql.jdbc.Driver");
+			Connection con = DriverManager.getConnection("jdbc:mysql://localhost:3306/mydb", "root", "root");
+			PreparedStatement pstat = con.prepareStatement("INSERT INTO qqq(j) VALUES(?)");
+
+			// pstat.setInt(1, 1);
+
+			pstat.setString(1, ime);
+			// Statement st = con.createStatement();
+			// String ins = "INSERT INTO QQQ VALUES('"+ime+"')";
+			pstat.execute();
+			pstat.close();
+			con.close();
+
 		} catch (ClassNotFoundException | SQLException e) {
 			e.printStackTrace();
 		}
@@ -249,6 +384,59 @@ public class ClientHandler extends Thread {
 		}
 	}
 
+	private void slanjeprivatnePoruke(String poruka, String username) {
+		for (ClientHandler klijent : Main.onlineKorisnici) {
+			if (klijent.username.equals (username)) {
+				klijent.clientOutput.println(poruka);
+			}
+		}
+	}
+
+	private void ispisiOnline() throws IOException {
+		try {
+			Class.forName("com.mysql.jdbc.Driver");
+			Connection con = DriverManager.getConnection("jdbc:mysql://localhost:3306/mydb", "root", "root");
+			
+			
+			
+			ResultSet rs =null;
+			PreparedStatement st = con.prepareStatement("select distinct u.user_id, u.name, f.fstatus from users u join friends f on (u.user_id = f.user_id1 or u.user_id = f.user_id2)"+  
+					" where user_id in(select user_id2 from friends where user_id1 in(Select user_id from users where name =?))" +
+					"or user_id in (select user_id1 from friends where user_id2 in(Select user_id from users where name =?))");
+			st.setString(1, username);
+			st.setString(2, username);
+			rs=st.executeQuery();
+			while (rs.next()) {
+				String name = rs.getString(2);
+				int id = rs.getInt(1);
+				int fs = rs.getInt(3);
+				if (fs==1) {
+					for (ClientHandler klijent : Main.onlineKorisnici) {
+						if(name.equals(klijent.username)) {
+							ispisPorukeOdServera(klijent.username);
+							ispisPorukeOdServera("Da li zelite da komunicirate sa ovim prijateljem(y/n)");
+							if(unos().toLowerCase().equals("y")) {
+							String poruka="";
+							while(!poruka.equals("izlaz")) {
+								poruka = unos();
+								slanjeprivatnePoruke(poruka, name);
+							}
+							}
+						}
+					}
+				}
+			}
+			st.close();
+			con.close();
+
+		} catch (ClassNotFoundException | SQLException e) {
+			e.printStackTrace();
+		}
+		
+		
+		
+		
+	}
 	private void ispisMenija() {
 
 		clientOutput.println(
@@ -260,5 +448,48 @@ public class ClientHandler extends Thread {
 		return clientInput.readLine();
 	}
 
-	
+	public void getID() {
+		try {
+			Class.forName("com.mysql.jdbc.Driver");
+			Connection con = DriverManager.getConnection("jdbc:mysql://localhost:3306/mydb", "root", "root");
+			Statement st = con.createStatement();
+			ResultSet rs = st.executeQuery("SELECT * FROM USERS");
+			while (rs.next()) {
+				String name = rs.getString("name");
+				if (name.equalsIgnoreCase(username)) {
+					String id = rs.getString(1);
+					this.idIgraca = Integer.parseInt(id);
+				}
+			}
+			st.close();
+			con.close();
+		} catch (ClassNotFoundException | SQLException e) {
+			e.printStackTrace();
+		}
+
+	}
+
+	public int getIDprijatelja(String ime) {
+		try {
+			Class.forName("com.mysql.jdbc.Driver");
+			Connection con = DriverManager.getConnection("jdbc:mysql://localhost:3306/mydb", "root", "root");
+			Statement st = con.createStatement();
+			ResultSet rs = st.executeQuery("SELECT * FROM USERS");
+			while (rs.next()) {
+				String name = rs.getString("name");
+				if (name.equalsIgnoreCase(ime)) {
+					String id = rs.getString(1);
+					return Integer.parseInt(id);
+				}
+			}
+			st.close();
+			con.close();
+
+		} catch (ClassNotFoundException | SQLException e) {
+			e.printStackTrace();
+		}
+		return -1;
+
+	}
+
 }

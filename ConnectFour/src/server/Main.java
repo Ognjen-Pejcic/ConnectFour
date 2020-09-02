@@ -50,12 +50,12 @@ public class Main {
 //				String name = rs.getString("name");
 //				System.out.println(name);
 //			}
-			System.out.println("Unesi igraca");
+			/*System.out.println("Unesi igraca");
 			String nesto = "naky";
 			Statement stmt = con.createStatement();
 			String dpop = "INSERT INTO USERS VALUES('" + nesto + "')";
 			stmt.execute(dpop);
-			stmt.close(); //OBEVEZNO
+			stmt.close(); //OBEVEZNO*/
 		} catch (ClassNotFoundException | SQLException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

@@ -17,4 +17,7 @@ public class Soba {
 		igra= new Igra(prvi, drugi, this);
 		igra.start();
 	}
+	public void zapocniIgru() {
+		igra.start();
+	}
 }
