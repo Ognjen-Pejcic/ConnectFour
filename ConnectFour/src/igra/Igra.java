@@ -194,6 +194,7 @@ public class Igra extends Thread {
 		} while (true);
 		this.upisiIgru();
 		this.updateStatistiku();
+		revans=false;
 		synchronized(this) {
 			prvi.ispisPorukeOdServera("Da li zelite revans(y/n)");
 			try {
@@ -210,12 +211,14 @@ public class Igra extends Thread {
 		synchronized(this) {
 			drugi.ispisPorukeOdServera("Da li zelite revans(y/n)");
 			try {
+				if(revans) {
 				if(drugi.unos().equals("y".toLowerCase())) {
 					revans=true;
 					prvi.ispisPorukeOdServera("drugi igrac takodje zeli revans");
 				}else {
 					prvi.ispisPorukeOdServera("Drugi ipak ne zeli revans");
 					revans=false;
+				}
 				}
 				} catch (IOException e) {
 				// TODO Auto-generated catch block

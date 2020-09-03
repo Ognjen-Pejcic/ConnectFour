@@ -12,6 +12,8 @@ import java.sql.ResultSet;
 import java.sql.RowId;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Collections;
+import java.util.Iterator;
 import java.util.LinkedList;
 
 import igra.Igra;
@@ -31,7 +33,8 @@ public class ClientHandler extends Thread {
 	public Igra igra = new Igra();
 	public int nesto = 1;
 	public int idIgraca;
-	
+	public int potvrda = 0;
+
 	LinkedList<ZahtevZaPrijateljstvo> zahtevi = new LinkedList<>();
 
 	public ClientHandler(Socket socketZaKomunikaciju) throws IOException {
@@ -89,7 +92,7 @@ public class ClientHandler extends Thread {
 					} catch (NumberFormatException e) {
 						izbor = 0;
 					}
-					if (izbor >= 1 && izbor <= 6)
+					if (izbor >= 1 && izbor <= 8)
 						break;
 					else
 						ispisPorukeOdServera("Pogresan unos, unesite broj izmedju 1 i 6");
@@ -104,26 +107,32 @@ public class ClientHandler extends Thread {
 						String message = clientInput.readLine();
 						if (message.toLowerCase().equals("izlaz"))
 							break;
-						slanjePorukeSvimUcesnicima(username + ": " + message);
+						slanjePorukeOstalimUcesnicima(username + ": " + message);
 					}
 					slanjePorukeSvimUcesnicima(username + " je napustio chat!");
 					this.uGlobalChatu = false;
 					break;
 
 				case 2:// privatni chat
-					ispisiOnline();
-			
+					privatniChat();
+
 					break;
 				case 3:// igra
 					uSobi = true;
 					Soba ova = null;
+
 					if (Main.sobe.isEmpty()) {
 						Main.sobe.add(new Soba(this));
 						ova = Main.sobe.getFirst();
 						ispisPorukeOdServera("Ceka se drugi igrac...");
 					} else {
-						for (Soba soba : Main.sobe) {
+						LinkedList<Soba> sobekopija = (LinkedList<Soba>) Main.sobe.clone();
+						// Collections.copy(sobekopija, Main.sobe);
+						for (Iterator<Soba> iterators = sobekopija.iterator(); iterators.hasNext();) {
+							Soba soba = iterators.next();
+							// for (Soba soba : Main.sobe) {
 							if (soba.drugi == null) {
+
 								soba.prikljucivanjeIgri(this);
 								ova = soba;
 								soba.prvi.ispisPorukeOdServera("Igrate protiv: " + username);
@@ -132,7 +141,8 @@ public class ClientHandler extends Thread {
 							} else {
 								Main.sobe.add(new Soba(this));
 								ispisPorukeOdServera("Ceka se drugi igrac...");
-								ova = soba;
+								ova = Main.sobe.getLast();
+								// ova = soba;
 								// ova.zapocniIgru();
 							}
 						}
@@ -166,7 +176,12 @@ public class ClientHandler extends Thread {
 					proveriZahteve();
 					break;
 				case 6:// logout
-
+					break;
+				case 7:
+					igrasaPrijateljem();
+					break;
+				case 8:
+					zahtevZaIgru();
 				default:
 
 				}
@@ -190,6 +205,88 @@ public class ClientHandler extends Thread {
 		} catch (InterruptedException e) {
 		}
 
+	}
+
+	private void zahtevZaIgru() throws NumberFormatException, IOException {
+		ispisPorukeOdServera("Da li prihvatate zahtev");
+		boolean pronadjen = false;
+		if (unos().equals("y")) {
+			this.potvrda = 1;
+			int kod = Integer.parseInt(unos());
+			LinkedList<Soba> kopija = (LinkedList<Soba>) Main.sobe.clone();
+			for (Soba soba : kopija) {
+				if (kod == soba.kod) {
+					pronadjen = true;
+					this.uSobi = true;
+					soba.prikljucivanjeIgri(this, kod);
+					while (soba.igra.isAlive() && this.uSobi == true)
+						continue;
+					// Main.sobe.remove(ova);
+				}
+
+			}
+			if (pronadjen == false)
+				ispisPorukeOdServera("Uneli ste pogresan kod");
+		} else {
+			this.potvrda = 2;
+		}
+
+	}
+
+	private void igrasaPrijateljem() throws IOException, InterruptedException {
+		try {
+			Class.forName("com.mysql.jdbc.Driver");
+			Connection con = DriverManager.getConnection("jdbc:mysql://localhost:3306/mydb", "root", "root");
+			Soba ova = null;
+			ResultSet rs = null;
+			Soba s = null;
+			PreparedStatement st = con.prepareStatement(
+					"select distinct u.user_id, u.name, f.fstatus from users u join friends f on (u.user_id = f.user_id1 or u.user_id = f.user_id2)"
+							+ " where user_id in(select user_id2 from friends where user_id1 in(Select user_id from users where name =?))"
+							+ "or user_id in (select user_id1 from friends where user_id2 in(Select user_id from users where name =?))");
+			st.setString(1, username);
+			st.setString(2, username);
+			rs = st.executeQuery();
+			while (rs.next()) {
+				String name = rs.getString(2);
+				int fs = rs.getInt(3);
+				if (fs == 1) {
+					for (ClientHandler klijent : Main.onlineKorisnici) {
+						if (name.equals(klijent.username)) {
+							ispisPorukeOdServera(klijent.username);
+							ispisPorukeOdServera("Da li zelite da igrate sa ovim prijateljem(y/n)");
+							if (unos().toLowerCase().equals("y")) {
+								s = new Soba(this);
+								Main.sobe.add(s);
+								this.uSobi = true;
+								klijent.ispisPorukeOdServera("Imate zahtev za igru od: " + this.username);
+								while (klijent.potvrda == 0) {
+									Thread.sleep(5000);
+									continue;
+								}
+								ispisPorukeOdServera("Protivnik je prihvatio vas zahtev i ubrzo ce se prikljuciti");
+								klijent.ispisPorukeOdServera("Pristupite sa kodom: " + s.kod);
+								while (s.drugi == null) {
+									Thread.sleep(5000);
+									continue;
+								}
+								while (s.igra.isAlive() && this.uSobi == true)
+									continue;
+								Main.sobe.remove(ova);
+							}
+						}
+					}
+				}
+			}
+
+			st.close();
+			con.close();
+
+		} catch (ClassNotFoundException |
+
+				SQLException e) {
+			e.printStackTrace();
+		}
 	}
 
 	private void napraviZahtevZaPrijateljstvo(String ime) {
@@ -217,10 +314,10 @@ public class ClientHandler extends Thread {
 			ispisPorukeOdServera("Da li prihvatate zahtev(y/n)");
 			if (unos().toLowerCase().equals("y")) {
 				zahtevZaPrijateljstvo.status = 1;
-				for(ClientHandler c : Main.onlineKorisnici) {
-					for(ZahtevZaPrijateljstvo z:c.zahtevi) {
-						if(c.username.equals(z.usernamePrijatelja))
-							z.status=1;
+				for (ClientHandler c : Main.onlineKorisnici) {
+					for (ZahtevZaPrijateljstvo z : c.zahtevi) {
+						if (c.username.equals(z.usernamePrijatelja))
+							z.status = 1;
 					}
 				}
 				try {
@@ -377,47 +474,45 @@ public class ClientHandler extends Thread {
 
 	private void slanjeprivatnePoruke(String poruka, String username) {
 		for (ClientHandler klijent : Main.onlineKorisnici) {
-			if (klijent.username.equals (username)) {
-				if(klijent.uPrivateChatu==true)
-				klijent.clientOutput.println(poruka);
+			if (klijent.username.equals(username)) {
+				if (klijent.uPrivateChatu == true)
+					klijent.clientOutput.println(poruka);
 			}
 		}
 	}
 
-	private void ispisiOnline() throws IOException {
+	private void privatniChat() throws IOException {
 		try {
 			Class.forName("com.mysql.jdbc.Driver");
 			Connection con = DriverManager.getConnection("jdbc:mysql://localhost:3306/mydb", "root", "root");
-			
-			
-			
-			ResultSet rs =null;
-			PreparedStatement st = con.prepareStatement("select distinct u.user_id, u.name, f.fstatus from users u join friends f on (u.user_id = f.user_id1 or u.user_id = f.user_id2)"+  
-					" where user_id in(select user_id2 from friends where user_id1 in(Select user_id from users where name =?))" +
-					"or user_id in (select user_id1 from friends where user_id2 in(Select user_id from users where name =?))");
+
+			ResultSet rs = null;
+			PreparedStatement st = con.prepareStatement(
+					"select distinct u.user_id, u.name, f.fstatus from users u join friends f on (u.user_id = f.user_id1 or u.user_id = f.user_id2)"
+							+ " where user_id in(select user_id2 from friends where user_id1 in(Select user_id from users where name =?))"
+							+ "or user_id in (select user_id1 from friends where user_id2 in(Select user_id from users where name =?))");
 			st.setString(1, username);
 			st.setString(2, username);
-			rs=st.executeQuery();
+			rs = st.executeQuery();
 			while (rs.next()) {
 				String name = rs.getString(2);
-				int id = rs.getInt(1);
 				int fs = rs.getInt(3);
-				if (fs==1) {
+				if (fs == 1) {
 					for (ClientHandler klijent : Main.onlineKorisnici) {
-						if(name.equals(klijent.username)) {
+						if (name.equals(klijent.username)) {
 							ispisPorukeOdServera(klijent.username);
 							ispisPorukeOdServera("Da li zelite da komunicirate sa ovim prijateljem(y/n)");
-							if(unos().toLowerCase().equals("y")) {
+							if (unos().toLowerCase().equals("y")) {
 								ispisPorukeOdServera("Za izlaz unesite \"izlaz\"");
-								this.uPrivateChatu=true;
-							String poruka="";
-							while(true) {
-								poruka = unos();
-								if(poruka.startsWith("izlaz".toLowerCase()))
-									break;
-								slanjeprivatnePoruke(poruka, name);
-							}
-							this.uPrivateChatu=false;
+								this.uPrivateChatu = true;
+								String poruka = "";
+								while (true) {
+									poruka = unos();
+									if (poruka.startsWith("izlaz".toLowerCase()))
+										break;
+									slanjeprivatnePoruke(poruka, name);
+								}
+								this.uPrivateChatu = false;
 							}
 						}
 					}
@@ -429,15 +524,13 @@ public class ClientHandler extends Thread {
 		} catch (ClassNotFoundException | SQLException e) {
 			e.printStackTrace();
 		}
-		
-		
-		
-		
+
 	}
+
 	private void ispisMenija() {
 
 		clientOutput.println(
-				"1. Globalni chat\n2. Privatni chat\n3. Igraj\n4. Dodaj prijatelja\n5. Zahtevi za prijateljstvo\n6. Logout\nVas izbor:");
+				"1. Globalni chat\n2. Privatni chat\n3. Igraj\n4. Dodaj prijatelja\n5. Zahtevi za prijateljstvo\n6. Logout\n7. Igra sa prijateljem\n8.Zahtevi za igru\nVas izbor:");
 
 	}
 
