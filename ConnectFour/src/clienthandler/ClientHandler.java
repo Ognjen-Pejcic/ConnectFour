@@ -25,12 +25,13 @@ public class ClientHandler extends Thread {
 	Socket socketZaKomunikaciju = null;
 	String username;
 	boolean uGlobalChatu = false;
+	boolean uPrivateChatu = false;
 	public boolean uSobi = false;
 	int brojigraca;
 	public Igra igra = new Igra();
 	public int nesto = 1;
 	public int idIgraca;
-
+	
 	LinkedList<ZahtevZaPrijateljstvo> zahtevi = new LinkedList<>();
 
 	public ClientHandler(Socket socketZaKomunikaciju) throws IOException {
@@ -111,17 +112,7 @@ public class ClientHandler extends Thread {
 
 				case 2:// privatni chat
 					ispisiOnline();
-					//ispisPorukeOdServera("Izaberite razgovor: ");
-					/*String friend =  unos();
-					for (ZahtevZaPrijateljstvo zahtevZaPrijateljstvo : zahtevi) {
-						if(zahtevZaPrijateljstvo.usernamePrijatelja==friend) {
-						String poruka=null;
-						while(!poruka.equals("izlaz")) {
-							poruka = unos();
-							slanjeprivatnePoruke(poruka, zahtevZaPrijateljstvo.usernamePrijatelja);
-						}
-					}
-					}*/
+			
 					break;
 				case 3:// igra
 					uSobi = true;
@@ -154,7 +145,7 @@ public class ClientHandler extends Thread {
 
 					while (ova.igra.isAlive() && this.uSobi == true)
 						continue;
-
+					Main.sobe.remove(ova);
 					break;
 				case 4:
 					ispisPorukeOdServera("Unesite ime prijatelja: ");
@@ -387,6 +378,7 @@ public class ClientHandler extends Thread {
 	private void slanjeprivatnePoruke(String poruka, String username) {
 		for (ClientHandler klijent : Main.onlineKorisnici) {
 			if (klijent.username.equals (username)) {
+				if(klijent.uPrivateChatu==true)
 				klijent.clientOutput.println(poruka);
 			}
 		}
@@ -416,11 +408,16 @@ public class ClientHandler extends Thread {
 							ispisPorukeOdServera(klijent.username);
 							ispisPorukeOdServera("Da li zelite da komunicirate sa ovim prijateljem(y/n)");
 							if(unos().toLowerCase().equals("y")) {
+								ispisPorukeOdServera("Za izlaz unesite \"izlaz\"");
+								this.uPrivateChatu=true;
 							String poruka="";
-							while(!poruka.equals("izlaz")) {
+							while(true) {
 								poruka = unos();
+								if(poruka.startsWith("izlaz".toLowerCase()))
+									break;
 								slanjeprivatnePoruke(poruka, name);
 							}
+							this.uPrivateChatu=false;
 							}
 						}
 					}

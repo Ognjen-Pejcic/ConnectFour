@@ -17,6 +17,7 @@ public class Igra extends Thread {
 	public int pobednikID, gubitnikID;
 	public ClientHandler prvi, drugi;
 	public int pobednik=0; 
+	public boolean revans=false;
 	public Igra() {
 	}
 
@@ -109,7 +110,7 @@ public class Igra extends Thread {
 
 	@Override
 	public void run() {
-	
+		do {
 		napuniMatricu();
 		prvi.ispisPorukeOdServera("Igra pocinje...");
 		drugi.ispisPorukeOdServera("Igra pocinje...");
@@ -193,6 +194,37 @@ public class Igra extends Thread {
 		} while (true);
 		this.upisiIgru();
 		this.updateStatistiku();
+		synchronized(this) {
+			prvi.ispisPorukeOdServera("Da li zelite revans(y/n)");
+			try {
+				if(prvi.unos().equals("y".toLowerCase())) {
+					revans=true;
+					drugi.ispisPorukeOdServera("Prvi zeli revans");
+				}else
+					drugi.ispisPorukeOdServera("Prvi ne zeli revans");
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+		synchronized(this) {
+			drugi.ispisPorukeOdServera("Da li zelite revans(y/n)");
+			try {
+				if(drugi.unos().equals("y".toLowerCase())) {
+					revans=true;
+					prvi.ispisPorukeOdServera("drugi igrac takodje zeli revans");
+				}else {
+					prvi.ispisPorukeOdServera("Drugi ipak ne zeli revans");
+					revans=false;
+				}
+				} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+		
+		
+		}while(revans==true);
 	}
 	
 	public void upisiIgru() {
