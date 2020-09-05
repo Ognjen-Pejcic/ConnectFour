@@ -182,9 +182,6 @@ public class ClientHandler extends Thread {
 					break;
 				case 8:
 					zahtevZaIgru();
-					break;
-				case 9:
-					ispisStatistike();
 				default:
 
 				}
@@ -533,7 +530,7 @@ public class ClientHandler extends Thread {
 	private void ispisMenija() {
 
 		clientOutput.println(
-				"1. Globalni chat\n2. Privatni chat\n3. Igraj\n4. Dodaj prijatelja\n5. Zahtevi za prijateljstvo\n6. Logout\n7. Igra sa prijateljem\n8. Zahtevi za igru\n9. Ispis statistike\nVas izbor:");
+				"1. Globalni chat\n2. Privatni chat\n3. Igraj\n4. Dodaj prijatelja\n5. Zahtevi za prijateljstvo\n6. Logout\n7. Igra sa prijateljem\n8.Zahtevi za igru\nVas izbor:");
 
 	}
 
@@ -583,28 +580,6 @@ public class ClientHandler extends Thread {
 		}
 		return -1;
 
-	}
-	
-	public void ispisStatistike() {
-		try {
-			Class.forName("com.mysql.jdbc.Driver");
-			Connection con = DriverManager.getConnection("jdbc:mysql://localhost:3306/mydb", "root", "root");
-			Statement st = con.createStatement();
-			ResultSet rs = st.executeQuery("SELECT * FROM STATISTICS");
-			while (rs.next()) {
-				int idIgraca = rs.getString(2);
-				if (igIgraca == this.idIgraca) {
-					clientOutput.println("Broj pobeda: " + rs.getInt(3));
-					clientOutput.println("Broj poraza: " + rs.getInt(4));
-					clientOutput.println("Broj izjednacenih partija: " + rs.getInt(5));
-					clientOutput.println("Rejting: " + rs.getInt(6));
-				}
-			}
-			st.close();
-			con.close();
-		} catch (ClassNotFoundException | SQLException e) {
-			e.printStackTrace();
-		}
 	}
 
 }
