@@ -19,8 +19,10 @@ public class Client implements Runnable{
 		 try {
 	           
 	            // Kada pokrenemo klijenta gadjamo localhost i port 12000 def. na serverskoj strani
-	           
-	            soketZaKomunikaciju = new Socket("localhost", 12000);
+			 	String ipAddress = args[0];
+			 	String port = args[1];
+			 
+	            soketZaKomunikaciju = new Socket(ipAddress, Integer.parseInt(port));
 	           
 	            // inicijalizujemo tokove i unos sa tastature
 	           
