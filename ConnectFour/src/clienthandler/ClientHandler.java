@@ -236,7 +236,7 @@ public class ClientHandler extends Thread {
 	private void igrasaPrijateljem() throws IOException, InterruptedException {
 		try {
 			Class.forName("com.mysql.jdbc.Driver");
-			Connection con = DriverManager.getConnection("jdbc:mysql://localhost:3306/mydb", "root", "root");
+			Connection con = DriverManager.getConnection("jdbc:mysql://localhost:3306/mydb", "projekat", "projekat");
 			Soba ova = null;
 			ResultSet rs = null;
 			Soba s = null;
@@ -293,7 +293,7 @@ public class ClientHandler extends Thread {
 		zahtevi.add(new ZahtevZaPrijateljstvo(ime, 0));
 		try {
 			Class.forName("com.mysql.jdbc.Driver");
-			Connection con = DriverManager.getConnection("jdbc:mysql://localhost:3306/mydb", "root", "root");
+			Connection con = DriverManager.getConnection("jdbc:mysql://localhost:3306/mydb", "projekat", "projekat");
 			PreparedStatement st = con.prepareStatement("INSERT INTO Friends(USER_ID1, USER_ID2) VALUES(?,?)");
 			st.setInt(1, this.idIgraca);
 			st.setInt(2, getIDprijatelja(ime));
@@ -322,7 +322,7 @@ public class ClientHandler extends Thread {
 				}
 				try {
 					Class.forName("com.mysql.jdbc.Driver");
-					Connection con = DriverManager.getConnection("jdbc:mysql://localhost:3306/mydb", "root", "root");
+					Connection con = DriverManager.getConnection("jdbc:mysql://localhost:3306/mydb", "projekat", "projekat");
 					PreparedStatement st = con.prepareStatement(
 							"update friends " + "set fstatus = 1 where user_id1 = ? and user_id2 = ?");
 					System.out.println(getIDprijatelja(zahtevZaPrijateljstvo.usernamePrijatelja) + " " + this.idIgraca);
@@ -379,7 +379,7 @@ public class ClientHandler extends Thread {
 	public boolean postojiUBazi(String ime) {
 		try {
 			Class.forName("com.mysql.jdbc.Driver");
-			Connection con = DriverManager.getConnection("jdbc:mysql://localhost:3306/mydb", "root", "root");
+			Connection con = DriverManager.getConnection("jdbc:mysql://localhost:3306/mydb", "projekat", "projekat");
 			Statement st = con.createStatement();
 			ResultSet rs = st.executeQuery("SELECT NAME FROM USERS");
 			while (rs.next()) {
@@ -399,7 +399,7 @@ public class ClientHandler extends Thread {
 	public void upisiUsera(String ime) {
 		try {
 			Class.forName("com.mysql.jdbc.Driver");
-			Connection con = DriverManager.getConnection("jdbc:mysql://localhost:3306/mydb", "root", "root");
+			Connection con = DriverManager.getConnection("jdbc:mysql://localhost:3306/mydb", "projekat", "projekat");
 			PreparedStatement st = con.prepareStatement("INSERT INTO USERS(NAME) VALUES(?)");
 			st.setString(1, ime);
 			st.execute();
@@ -420,7 +420,7 @@ public class ClientHandler extends Thread {
 	public void upisiStatistiku(int id) {
 		try {
 			Class.forName("com.mysql.jdbc.Driver");
-			Connection con = DriverManager.getConnection("jdbc:mysql://localhost:3306/mydb", "root", "root");
+			Connection con = DriverManager.getConnection("jdbc:mysql://localhost:3306/mydb", "projekat", "projekat");
 			PreparedStatement st = con.prepareStatement("INSERT INTO STATISTICS(USER_ID) VALUES(?)");
 			st.setInt(1, id);
 			st.execute();
@@ -435,7 +435,7 @@ public class ClientHandler extends Thread {
 	public void upisi(String ime) {
 		try {
 			Class.forName("com.mysql.jdbc.Driver");
-			Connection con = DriverManager.getConnection("jdbc:mysql://localhost:3306/mydb", "root", "root");
+			Connection con = DriverManager.getConnection("jdbc:mysql://localhost:3306/mydb", "projekat", "projekat");
 			PreparedStatement pstat = con.prepareStatement("INSERT INTO qqq(j) VALUES(?)");
 
 			// pstat.setInt(1, 1);
@@ -484,7 +484,7 @@ public class ClientHandler extends Thread {
 	private void privatniChat() throws IOException {
 		try {
 			Class.forName("com.mysql.jdbc.Driver");
-			Connection con = DriverManager.getConnection("jdbc:mysql://localhost:3306/mydb", "root", "root");
+			Connection con = DriverManager.getConnection("jdbc:mysql://localhost:3306/mydb", "projekat", "projekat");
 
 			ResultSet rs = null;
 			PreparedStatement st = con.prepareStatement(
@@ -541,7 +541,7 @@ public class ClientHandler extends Thread {
 	public void getID() {
 		try {
 			Class.forName("com.mysql.jdbc.Driver");
-			Connection con = DriverManager.getConnection("jdbc:mysql://localhost:3306/mydb", "root", "root");
+			Connection con = DriverManager.getConnection("jdbc:mysql://localhost:3306/mydb", "projekat", "projekat");
 			Statement st = con.createStatement();
 			ResultSet rs = st.executeQuery("SELECT * FROM USERS");
 			while (rs.next()) {
@@ -562,7 +562,7 @@ public class ClientHandler extends Thread {
 	public int getIDprijatelja(String ime) {
 		try {
 			Class.forName("com.mysql.jdbc.Driver");
-			Connection con = DriverManager.getConnection("jdbc:mysql://localhost:3306/mydb", "root", "root");
+			Connection con = DriverManager.getConnection("jdbc:mysql://localhost:3306/mydb", "projekat", "projekat");
 			Statement st = con.createStatement();
 			ResultSet rs = st.executeQuery("SELECT * FROM USERS");
 			while (rs.next()) {

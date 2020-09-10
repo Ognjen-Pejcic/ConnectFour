@@ -233,7 +233,7 @@ public class Igra extends Thread {
 	public void upisiIgru() {
 		try {
 			Class.forName("com.mysql.jdbc.Driver");
-			Connection con = DriverManager.getConnection("jdbc:mysql://localhost:3306/mydb", "root", "root");
+			Connection con = DriverManager.getConnection("jdbc:mysql://localhost:3306/mydb", "projekat", "projekat");
 			PreparedStatement st = con.prepareStatement("INSERT INTO game(user_id1, user_id2, date_time, result) VALUES(?,?,?,?)");
 			st.setInt(1, prvi.idIgraca);
 			st.setInt(2, drugi.idIgraca);
@@ -259,7 +259,7 @@ public class Igra extends Thread {
 	public void updateStatistiku() {
 		try {
 			Class.forName("com.mysql.jdbc.Driver");
-			Connection con = DriverManager.getConnection("jdbc:mysql://localhost:3306/mydb", "root", "root");
+			Connection con = DriverManager.getConnection("jdbc:mysql://localhost:3306/mydb", "projekat", "projekat");
 			PreparedStatement st1 = null;
 			PreparedStatement st2 = null;
 			PreparedStatement st3 = null;

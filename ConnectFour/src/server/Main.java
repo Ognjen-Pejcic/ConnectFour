@@ -21,7 +21,7 @@ public class Main {
 	public static void main(String[] args) {
 		Main pro = new Main();
 		pro.createConnection();
-		int portNumber = 12000;
+		int portNumber = Integer.parseInt(args[0]);
 		Socket socketZaKomunikaciju = null;
 		ServerSocket serverSocket = null;
 		try {
@@ -43,7 +43,7 @@ public class Main {
 	void createConnection () {
 		try {
 			Class.forName("com.mysql.jdbc.Driver");
-			con = DriverManager.getConnection("jdbc:mysql://localhost:3306/mydb", "root", "root");
+			con = DriverManager.getConnection("jdbc:mysql://localhost:3306/mydb", "projekat", "projekat");
 //			Statement stmt = con.createStatement();
 //			ResultSet rs = stmt.executeQuery("SELECT * FROM USERS");
 //			while(rs.next()) {
